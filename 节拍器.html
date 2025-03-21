@@ -7,147 +7,161 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>节拍器</title>
     <style>
-        *{padding: 0;margin: 0;font-family: Cambria, "微软雅黑";}
-        header{background-image: linear-gradient(to bottom,#4387fd,#4683ea);padding: 20px;font-size: 30px;color: #fff;}
-        footer{padding: 20px;text-align: center;color: #ccc;}
-        footer>a{color: #999;}
-        body>section{text-align: center;padding: 20px;width: 300px;margin: auto;}
-        body>section>section{margin: 30px auto;}
-        body>section>section>div{display: flex;justify-content:space-between;align-items: center;}
-        button {padding: 5px 10px;}
-        #btnTest {padding: 15px 30px;font-size: 20px;}
-        #btnPlay,#btnStop{font-size: 50px;border: 0;background: transparent;}
-        #btnStop {display: none;}
-        #speed{font-size: 50px;}
-        #speed1,#speed2{color: #999;cursor: pointer;}
-        #speed1:hover,#speed2:hover{color: #333;}
-        #msg{height: 20px;padding-top: 5px; font-size: 9px;color: gray;}
+        .pendulum-container {
+            position: relative;
+            height: 200px;
+            margin: 30px 0;
+        }
+
+        .pendulum {
+            position: absolute;
+            left: 50%;
+            width: 4px;
+            height: 150px;
+            background: #333;
+            transform-origin: bottom center;
+            transition: transform 0.3s ease-in-out;
+            bottom: 0;
+        }
+
+        .pendulum-ball {
+            position: absolute;
+            top: 0;
+            left: -15px;
+            width: 34px;
+            height: 34px;
+            background: #5aad91;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        * {
+            padding: 0;
+            margin: 0;
+            font-family: Cambria, "微软雅黑";
+        }
+
+        header {
+            background: #0c65c3;
+            padding: 20px;
+            font-size: 30px;
+            color: #fff;
+        }
+
+        footer {
+            padding: 20px;
+            text-align: center;
+            color: #ccc;
+            background: #0c65c3;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        footer>a {
+            color: #5aad91;
+        }
+
+        .polish-text {
+            font-size: 0.8em;
+            color: #88c1f1;
+        }
+
+        body {
+            background: #0c65c3;
+        }
+
+        body>section {
+            text-align: center;
+            padding: 20px;
+            width: 300px;
+            margin: auto;
+        }
+
+        body>section>section {
+            margin: 30px auto;
+        }
+
+        body>section>section>div {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        button {
+            padding: 5px 10px;
+            background: #5aad91;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #4a9c7d;
+        }
+
+        button:active {
+            background: #3f8a6f;
+        }
+
+        #btnTest {
+            padding: 15px 30px;
+            font-size: 20px;
+        }
+
+        #btnPlay,
+        #btnStop {
+            font-size: 50px;
+            border: 0;
+            background: transparent;
+            color: #5aad91;
+        }
+
+        #btnStop {
+            display: none;
+        }
+
+        #speed {
+            font-size: 50px;
+            color: #fff;
+        }
+
+        #speed1,
+        #speed2 {
+            color: #d1f0e6;
+            cursor: pointer;
+        }
+
+        #speed1:hover,
+        #speed2:hover {
+            color: #fff;
+        }
+
+        #msg {
+            height: 20px;
+            padding-top: 5px;
+            font-size: 9px;
+            color: #a3d6ff;
+        }
+
+        input[type="range"] {
+            accent-color: #5aad91;
+            width: 100%;
+        }
     </style>
-    <script>
-
-        document.addEventListener("DOMContentLoaded", function () {
-
-            let speed = 60, //节拍速度
-                arrClick = [],  //测速时每次点击的速度组成的数组，节拍速度取其平均值
-                clickTime = 0,  //测速点击计时器，超过 5 秒清空数组
-                s = Date.now(), //记录每一次点击的时间，下一次点击时与此时间的间隔，来计算速度
-                time = 0,   //play 过程 timeout 变量
-                isPlay = false, //是否正在播放
-                speedMsg = document.getElementById("speed"),    //页面正中间显示速度值的元素
-                rangeValue = document.getElementById("rangeValue"), //滑块元素
-                elSpeed1 = document.getElementById("speed1"),
-                elSpeed2 = document.getElementById("speed2"),
-                showSpeed = () => {//显示速度值的方法（或者叫 update 方法）
-                    rangeValue.value = speedMsg.innerText = speed;
-                    elSpeed1.innerText = Math.round(speed / 2);
-                    elSpeed2.innerText = speed * 2;
-                }; 
-
-            /** 测速按钮点击 */
-            document.getElementById("btnTest").addEventListener("click", function () {
-                let lastSpeed = Math.floor(60000 / (Date.now() - s));
-                if (Math.abs(lastSpeed - arrClick[arrClick.length - 1]) > 30) { arrClick = []; }  //如果点击时间和上次差别较大，则清零重测
-                arrClick.push(lastSpeed);
-
-                if (arrClick.length > 31) arrClick.shift(); //最大容量保持在30个（除去第 1 个不用）
-
-                //如果数量多于1个则计算速度（第 1 个时间间隔太久，不准确，弃之）
-                if (arrClick.length > 1) {
-
-                    //取第2个到最后的平均值
-                    speed = Math.ceil((arrClick.reduce((sum, n) => sum + n) - arrClick[0]) / (arrClick.length - 1));
-                    console.log(arrClick.slice(1, arrClick.length).join("+") + " = " + (arrClick.reduce((s, n) => s + n) - arrClick[0]) + " / " + (arrClick.length - 1));
-
-                    if (arrClick.length > 5) document.getElementById("msg").innerText = "多点几次更准确...";
-                }
-                showSpeed();
-                s = Date.now();
-                document.getElementById("btnStop").click(); //测速时停止播放
-
-                //两次点击间隔大于 3 秒就重置
-                window.clearTimeout(clickTime);
-                clickTime = window.setTimeout(function () {
-                    arrClick = [];
-                    document.getElementById("msg").innerText = "";
-                }, 3000);
-
-            });
-
-            /** 播放按钮点击 */
-            document.getElementById("btnPlay").addEventListener("click", function () {
-                isPlay = true;
-                play();
-                this.style.display = "none";
-                document.getElementById("btnStop").style.display = "inline-block";
-            });
-
-            /** 停止按钮点击 */
-            document.getElementById("btnStop").addEventListener("click", function () {
-                window.clearTimeout(time);
-                isPlay = false;
-                this.style.display = "none";
-                document.getElementById("btnPlay").style.display = "inline-block";
-            });
-
-            /** 减号按钮点击 */
-            document.getElementById("btnSub").addEventListener("click", function () {
-                speed--;
-                showSpeed();
-            });
-
-            /** 加号按钮点击 */
-            document.getElementById("btnAdd").addEventListener("click", function () {
-                speed++;
-                showSpeed();
-            });
-
-            document.getElementById("speed1").addEventListener("click",function(){
-                speed = this.innerText * 1;
-                showSpeed();
-            })
-            document.getElementById("speed2").addEventListener("click",function(){
-                speed = this.innerText * 1;
-                showSpeed();
-            })
-
-            /** 滑动条更改 */
-            rangeValue.addEventListener("change", function () {
-                speed = this.value * 1;
-                showSpeed();
-            });
-
-            /** 播放 */
-            let play = () => {
-                window.clearTimeout(time);
-                playsound();
-                if (isPlay) {
-                    time = window.setTimeout(play, Math.floor(60000 / speed));
-                };
-            }
-
-            let audioCtx = new AudioContext();
-            /** 发声 */
-            let playsound = () => {
-                let oscillator = audioCtx.createOscillator();
-                let gainNode = audioCtx.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(220, audioCtx.currentTime);
-                oscillator.frequency.linearRampToValueAtTime(50, audioCtx.currentTime + 0.1);
-                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-                gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.01);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-                oscillator.start(audioCtx.currentTime);
-                oscillator.stop(audioCtx.currentTime + 0.5);
-            }
-        });
-    </script>
 </head>
 
 <body>
     <header>节拍器</header>
     <section>
+        <div class="pendulum-container">
+            <div class="pendulum">
+                <div class="pendulum-ball"></div>
+            </div>
+        </div>
+        
         <button id="btnTest">连续点击测速</button>
         <div id="msg"></div>
         <section>
@@ -158,12 +172,154 @@
                 <div id="speed2">120</div>
                 <button id="btnAdd">➕</button>
             </div>
-            <div><input type="range" style="width:100%;" min="20" max="300" id="rangeValue" value="60"></div>
+            <div><input type="range" min="20" max="300" id="rangeValue" value="60"></div>
         </section>
         <button id="btnPlay">▶️</button>
         <button id="btnStop">⏹️</button>
     </section>
-    <footer>2018-02-05 by <a href="mailto://zk1218@gmail.com">📧 zhangkai</a></footer>
-</body>
+    <footer>
+        <div>
+            2018-02-05 by <a href="mailto:zk1218@gmail.com">📧 zhangkai</a>
+        </div>
+        <div class="polish-text">
+            polishby 0c65c3 2025-03-21
+        </div>
+    </footer>
 
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const pendulum = document.querySelector('.pendulum');
+            let isSwinging = false;
+            let swingDirection = 1;
+            let animationFrame;
+            let soundTimeout;
+            let pendingSound = false;
+
+            // 摆棒动画方法
+            function swingPendulum() {
+                if (!isSwinging) return;
+                
+                const duration = (60000 / speed) / 1000;
+                const angle = swingDirection * 30;
+                swingDirection *= -1;
+
+                pendulum.style.transition = `transform ${duration/2}s ease-in-out`;
+                pendulum.style.transform = `rotate(${angle}deg)`;
+
+                // 精确声音触发
+                if (!pendingSound) {
+                    soundTimeout = setTimeout(() => {
+                        playsound();
+                        pendingSound = false;
+                    }, duration/2 * 1000 - 10);
+                }
+                pendingSound = true;
+
+                animationFrame = setTimeout(() => {
+                    swingPendulum();
+                }, duration * 1000);
+            }
+
+            // 节拍器核心逻辑
+            let speed = 60;
+            let arrClick = [];
+            let clickTime = 0;
+            let s = Date.now();
+            let time = 0;
+            let isPlay = false;
+            let speedMsg = document.getElementById("speed");
+            let rangeValue = document.getElementById("rangeValue");
+            let elSpeed1 = document.getElementById("speed1");
+            let elSpeed2 = document.getElementById("speed2");
+            
+            const showSpeed = () => {
+                rangeValue.value = speedMsg.innerText = speed;
+                elSpeed1.innerText = Math.round(speed / 2);
+                elSpeed2.innerText = speed * 2;
+            };
+
+            // 事件监听
+            document.getElementById("btnTest").addEventListener("click", function () {
+                let lastSpeed = Math.floor(60000 / (Date.now() - s));
+                if (arrClick.length > 0 && Math.abs(lastSpeed - arrClick[arrClick.length - 1]) > 30) {
+                    arrClick = [];
+                }
+                arrClick.push(lastSpeed);
+
+                if (arrClick.length > 31) arrClick.shift();
+                if (arrClick.length > 1) {
+                    speed = Math.ceil((arrClick.reduce((sum, n) => sum + n) - arrClick[0]) / (arrClick.length - 1));
+                    document.getElementById("msg").innerText = arrClick.length > 5 ? "多点几次更准确..." : "";
+                }
+                showSpeed();
+                s = Date.now();
+                document.getElementById("btnStop").click();
+
+                window.clearTimeout(clickTime);
+                clickTime = window.setTimeout(() => {
+                    arrClick = [];
+                    document.getElementById("msg").innerText = "";
+                }, 3000);
+            });
+
+            document.getElementById("btnPlay").addEventListener("click", function () {
+                isPlay = true;
+                isSwinging = true;
+                swingDirection = 1;
+                play();
+                this.style.display = "none";
+                document.getElementById("btnStop").style.display = "inline-block";
+                swingPendulum();
+            });
+
+            document.getElementById("btnStop").addEventListener("click", function () {
+                window.clearTimeout(time);
+                window.clearTimeout(animationFrame);
+                window.clearTimeout(soundTimeout);
+                isPlay = false;
+                isSwinging = false;
+                pendingSound = false;
+                pendulum.style.transform = 'rotate(0deg)';
+                pendulum.style.transition = 'transform 0.3s ease-in-out';
+                this.style.display = "none";
+                document.getElementById("btnPlay").style.display = "inline-block";
+            });
+
+            // 速度控制
+            document.getElementById("btnSub").addEventListener("click", () => { speed--; showSpeed(); });
+            document.getElementById("btnAdd").addEventListener("click", () => { speed++; showSpeed(); });
+            document.getElementById("speed1").addEventListener("click", function() { speed = this.innerText * 1; showSpeed(); });
+            document.getElementById("speed2").addEventListener("click", function() { speed = this.innerText * 1; showSpeed(); });
+            rangeValue.addEventListener("input", function() { speed = this.value; showSpeed(); });
+
+            // 播放逻辑
+            const play = () => {
+                window.clearTimeout(time);
+                if (isPlay) {
+                    time = setTimeout(play, Math.floor(60000 / speed));
+                }
+            }
+
+            // 音频处理
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const playsound = () => {
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(220, audioCtx.currentTime);
+                oscillator.frequency.linearRampToValueAtTime(50, audioCtx.currentTime + 0.1);
+                
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+                
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.5);
+            }
+        });
+    </script>
+</body>
 </html>
